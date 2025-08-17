@@ -55,18 +55,7 @@ export default function App(){
 
   const [toast,setToast]=useState(null)
   const copySummary = async () => {
-    const text = [
-      '📦 Расчёт стоимости кроссовок',
-      `База: ${fmtCNY(Number(baseCny))} × курс ${rate}`,
-      `Перевод в ₽: ${fmtRUB(calc.baseRub)}`,
-      `Комиссия (${commissionPct}% от базы): ${fmtCNY(calc.commissionYuan)} → ${fmtRUB(calc.commissionRub)}`,
-      `Логистика: ${fmtRUB(Number(logistics))}`,
-      `Себестоимость: ${fmtRUB(calc.cost)}`,
-      `Наценка: ${Number(markupPct).toFixed(1)}% → ${fmtRUB(calc.markupRub)}`,
-      `Прибыль: ${fmtRUB(calc.profit)}`,
-      `💰 Итог: ${fmtRUB(calc.finalPrice)}`,
-    ].join('\\n')
-    await navigator.clipboard.writeText(text)
+    await navigator.clipboard.writeText(fmtRUB(calc.finalPrice))
     setToast({type:'ok', msg:'Скопировано ✅'})
   }
 
