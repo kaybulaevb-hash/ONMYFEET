@@ -8,25 +8,89 @@ const clamp = (n,min=0,max=1_000_000_000)=> (isFinite(n)?Math.min(Math.max(n,min
 const K = { theme:'sc.theme', accent:'sc.accent', base:'sc.base', rate:'sc.rate', logi:'sc.logi', comm:'sc.comm', mark:'sc.mark', hist:'sc.history' }
 
 export default function App(){
-  const [dark,setDark]=useState(()=> localStorage.getItem(K.theme)==='dark')
-  const [accent,setAccent]=useState(()=> localStorage.getItem(K.accent) || 'green')
-  useEffect(()=>{ localStorage.setItem(K.theme,dark?'dark':'light'); document.documentElement.classList.toggle('dark',dark) },[dark])
-  useEffect(()=>{ localStorage.setItem(K.accent,accent) },[accent])
+  const [dark,setDark]=useState(()=> {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(K.theme)==='dark'
+    }
+    return false
+  })
+  const [accent,setAccent]=useState(()=> {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(K.accent) || 'green'
+    }
+    return 'green'
+  })
+  useEffect(()=>{ 
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(K.theme,dark?'dark':'light'); 
+      document.documentElement.classList.toggle('dark',dark) 
+    }
+  },[dark])
+  useEffect(()=>{ 
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(K.accent,accent) 
+    }
+  },[accent])
   const accentHex = accent==='green' ? '#00ff88' : '#ff4444'
 
   // inputs as strings (to control leading zero behavior)
-  const [baseCny,setBaseCny]=useState(()=> localStorage.getItem(K.base) || '400')
-  const [rate,setRate]=useState(()=> localStorage.getItem(K.rate) || '13.2')
-  const [logistics,setLogistics]=useState(()=> localStorage.getItem(K.logi) || '1000')
-  const [commissionPct,setCommissionPct]=useState(()=> localStorage.getItem(K.comm) || '10')
-  const [markupPct,setMarkupPct]=useState(()=> localStorage.getItem(K.mark) || '50')
+  const [baseCny,setBaseCny]=useState(()=> {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(K.base) || '400'
+    }
+    return '400'
+  })
+  const [rate,setRate]=useState(()=> {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(K.rate) || '13.2'
+    }
+    return '13.2'
+  })
+  const [logistics,setLogistics]=useState(()=> {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(K.logi) || '1000'
+    }
+    return '1000'
+  })
+  const [commissionPct,setCommissionPct]=useState(()=> {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(K.comm) || '10'
+    }
+    return '10'
+  })
+  const [markupPct,setMarkupPct]=useState(()=> {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(K.mark) || '50'
+    }
+    return '50'
+  })
 
   // Immediate localStorage updates for individual fields (for persistence)
-  useEffect(()=>localStorage.setItem(K.base,baseCny),[baseCny])
-  useEffect(()=>localStorage.setItem(K.rate,rate),[rate])
-  useEffect(()=>localStorage.setItem(K.logi,logistics),[logistics])
-  useEffect(()=>localStorage.setItem(K.comm,commissionPct),[commissionPct])
-  useEffect(()=>localStorage.setItem(K.mark,markupPct),[markupPct])
+  useEffect(()=>{
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(K.base,baseCny)
+    }
+  },[baseCny])
+  useEffect(()=>{
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(K.rate,rate)
+    }
+  },[rate])
+  useEffect(()=>{
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(K.logi,logistics)
+    }
+  },[logistics])
+  useEffect(()=>{
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(K.comm,commissionPct)
+    }
+  },[commissionPct])
+  useEffect(()=>{
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(K.mark,markupPct)
+    }
+  },[markupPct])
 
   const calc = useMemo(()=>{
     const baseRub = clamp(Number(baseCny))*clamp(Number(rate))
@@ -44,7 +108,16 @@ export default function App(){
   useEffect(()=>{ const c=animate(mv, calc.finalPrice, {duration:0.35, ease:'easeOut'}); return ()=>c.stop() },[calc.finalPrice])
 
   // history
-  const [history,setHistory]=useState(()=> { try { return JSON.parse(localStorage.getItem(K.hist)||'[]') } catch { return [] } })
+  const [history,setHistory]=useState(()=> { 
+    if (typeof window !== 'undefined') {
+      try { 
+        return JSON.parse(localStorage.getItem(K.hist)||'[]') 
+      } catch { 
+        return [] 
+      }
+    }
+    return []
+  })
   
   // Manual calculation save to history
   const saveToHistory = async () => {
@@ -60,7 +133,9 @@ export default function App(){
     
     setHistory(prev => {
       const next = [entry, ...prev].slice(0,10)
-      localStorage.setItem(K.hist, JSON.stringify(next))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(K.hist, JSON.stringify(next))
+      }
       return next
     })
     
@@ -169,9 +244,17 @@ export default function App(){
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 rounded-full backdrop-blur-md bg-white/60 dark:bg-neutral-800/40 border border-white/30 dark:border-neutral-700/50 px-2 py-1 text-xs shadow-lg">
-              <button className={`rounded-full px-2 py-1 transition-all ${ (localStorage.getItem(K.accent)||'green')==='green' ? 'bg-white/80 dark:bg-neutral-700/80 font-semibold shadow-sm':'opacity-60 hover:opacity-80'}`} onClick={()=>setAccent('green')}>#00ff88</button>
+              <button className={`rounded-full px-2 py-1 transition-all ${ 
+                (typeof window !== 'undefined' ? localStorage.getItem(K.accent) : 'green') === 'green' 
+                  ? 'bg-white/80 dark:bg-neutral-700/80 font-semibold shadow-sm'
+                  : 'opacity-60 hover:opacity-80'
+              }`} onClick={()=>setAccent('green')}>#00ff88</button>
               <span className="opacity-40">/</span>
-              <button className={`rounded-full px-2 py-1 transition-all ${ (localStorage.getItem(K.accent)||'green')==='red' ? 'bg-white/80 dark:bg-neutral-700/80 font-semibold shadow-sm':'opacity-60 hover:opacity-80'}`} onClick={()=>setAccent('red')}>#ff4444</button>
+              <button className={`rounded-full px-2 py-1 transition-all ${ 
+                (typeof window !== 'undefined' ? localStorage.getItem(K.accent) : 'green') === 'red' 
+                  ? 'bg-white/80 dark:bg-neutral-700/80 font-semibold shadow-sm'
+                  : 'opacity-60 hover:opacity-80'
+              }`} onClick={()=>setAccent('red')}>#ff4444</button>
             </div>
             <button onClick={()=>setDark(v=>!v)} className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm shadow-lg transition-all duration-200 hover:scale-105" style={{
               backdropFilter: 'blur(12px)',
