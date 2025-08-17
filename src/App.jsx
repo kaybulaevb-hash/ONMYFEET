@@ -1,5 +1,4 @@
-
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from 'framer-motion'
 
 const fmtRUB = (n) => new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(isFinite(n)?Math.round(n):0)
@@ -22,11 +21,20 @@ export default function App(){
   const [commissionPct,setCommissionPct]=useState(()=> localStorage.getItem(K.comm) || '10')
   const [markupPct,setMarkupPct]=useState(()=> localStorage.getItem(K.mark) || '50')
 
-  useEffect(()=>localStorage.setItem(K.base,baseCny),[baseCny])
-  useEffect(()=>localStorage.setItem(K.rate,rate),[rate])
-  useEffect(()=>localStorage.setItem(K.logi,logistics),[logistics])
-  useEffect(()=>localStorage.setItem(K.comm,commissionPct),[commissionPct])
-  useEffect(()=>localStorage.setItem(K.mark,markupPct),[markupPct])
+  // Debounced localStorage updates
+  const debounceTimerRef = useRef(null)
+  const previousCalcRef = useRef(null)
+
+  const updateLocalStorageDebounced = (key, value) => {
+    localStorage.setItem(key, value)
+  }
+
+  // Immediate localStorage updates for individual fields (for persistence)
+  useEffect(()=>updateLocalStorageDebounced(K.base,baseCny),[baseCny])
+  useEffect(()=>updateLocalStorageDebounced(K.rate,rate),[rate])
+  useEffect(()=>updateLocalStorageDebounced(K.logi,logistics),[logistics])
+  useEffect(()=>updateLocalStorageDebounced(K.comm,commissionPct),[commissionPct])
+  useEffect(()=>updateLocalStorageDebounced(K.mark,markupPct),[markupPct])
 
   const calc = useMemo(()=>{
     const baseRub = clamp(Number(baseCny))*clamp(Number(rate))
@@ -43,17 +51,58 @@ export default function App(){
   const finalDisplay = useTransform(mv, v => fmtRUB(v))
   useEffect(()=>{ const c=animate(mv, calc.finalPrice, {duration:0.35, ease:'easeOut'}); return ()=>c.stop() },[calc.finalPrice])
 
-  // history
+  // history with debouncing
   const [history,setHistory]=useState(()=> { try { return JSON.parse(localStorage.getItem(K.hist)||'[]') } catch { return [] } })
+  
+  // Debounced history update
   useEffect(()=>{
-    const entry = { t:new Date().toLocaleString(), base:Number(baseCny), rate:Number(rate), logi:Number(logistics), comm:Number(commissionPct), mark:Number(markupPct), final:Math.round(calc.finalPrice) }
-    const next=[entry, ...history].slice(0,10)
-    setHistory(next)
-    localStorage.setItem(K.hist, JSON.stringify(next))
-    // eslint-disable-next-line
-  },[calc.finalPrice])
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    // Check if calculation actually changed (avoid duplicate entries)
+    const currentCalcKey = `${baseCny}-${rate}-${logistics}-${commissionPct}-${markupPct}`
+    if (previousCalcRef.current === currentCalcKey) {
+      return
+    }
+
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      const entry = { 
+        t: new Date().toLocaleString(), 
+        base: Number(baseCny), 
+        rate: Number(rate), 
+        logi: Number(logistics), 
+        comm: Number(commissionPct), 
+        mark: Number(markupPct), 
+        final: Math.round(calc.finalPrice) 
+      }
+      
+      setHistory(prev => {
+        const next = [entry, ...prev].slice(0,10)
+        localStorage.setItem(K.hist, JSON.stringify(next))
+        return next
+      })
+
+      previousCalcRef.current = currentCalcKey
+    }, 500) // 500ms debounce
+
+    // Cleanup function
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  },[baseCny, rate, logistics, commissionPct, markupPct, calc.finalPrice])
 
   const [toast,setToast]=useState(null)
+  
+  const showToast = (msg) => {
+    setToast({type:'ok', msg})
+    setTimeout(() => setToast(null), 2000)
+  }
+
   const copySummary = async () => {
     const text = [
       '📦 Расчёт стоимости кроссовок',
@@ -65,9 +114,15 @@ export default function App(){
       `Наценка: ${Number(markupPct).toFixed(1)}% → ${fmtRUB(calc.markupRub)}`,
       `Прибыль: ${fmtRUB(calc.profit)}`,
       `💰 Итог: ${fmtRUB(calc.finalPrice)}`,
-    ].join('\\n')
+    ].join('\n')
     await navigator.clipboard.writeText(text)
-    setToast({type:'ok', msg:'Скопировано ✅'})
+    showToast('Скопировано ✅')
+  }
+
+  const copyCostPrice = async () => {
+    const text = `Себестоимость: ${fmtRUB(calc.cost)}`
+    await navigator.clipboard.writeText(text)
+    showToast('Себестоимость скопирована ✅')
   }
 
   return (
@@ -100,6 +155,11 @@ export default function App(){
               <div className="grid grid-cols-2 gap-3">
                 <InputNumber label="Комиссия посредника (%)" value={commissionPct} onChange={setCommissionPct} step="0.1" />
                 <InputNumber label="Наценка (%)" value={markupPct} onChange={setMarkupPct} step="0.1" />
+              </div>
+              <div className="mt-2 flex justify-center">
+                <button className="btn" onClick={copyCostPrice}>
+                  Скопировать себестоимость
+                </button>
               </div>
             </div>
           </section>
