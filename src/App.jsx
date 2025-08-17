@@ -234,8 +234,8 @@ export default function App(){
       <AnimatePresence>
         {toast && (
           <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} exit={{y:40,opacity:0}} transition={{duration:0.25}}
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-            <div className="rounded-full px-4 py-2 text-sm shadow-lg" style={{background:'#202e1e',color:'#fff'}}>
+            className="fixed bottom-4 left-0 right-0 z-50 flex justify-center pointer-events-none">
+            <div className="rounded-full px-4 py-2 text-sm shadow-lg pointer-events-auto" style={{background:'#202e1e',color:'#fff'}}>
               {toast.msg}
             </div>
           </motion.div>
