@@ -66,7 +66,7 @@ export default function App(){
       `Прибыль: ${fmtRUB(calc.profit)}`,
       `💰 Итог: ${fmtRUB(calc.finalPrice)}`,
     ].join('\\n')
-    await navigator.clipboard.writeText(text)
+    await navigator.clipboard.writeText(fmtRUB(calc.finalPrice))
     setToast({type:'ok', msg:'Скопировано ✅'})
   }
 
