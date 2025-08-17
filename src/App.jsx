@@ -21,20 +21,12 @@ export default function App(){
   const [commissionPct,setCommissionPct]=useState(()=> localStorage.getItem(K.comm) || '10')
   const [markupPct,setMarkupPct]=useState(()=> localStorage.getItem(K.mark) || '50')
 
-  // Debounced localStorage updates
-  const debounceTimerRef = useRef(null)
-  const previousCalcRef = useRef(null)
-
-  const updateLocalStorageDebounced = (key, value) => {
-    localStorage.setItem(key, value)
-  }
-
   // Immediate localStorage updates for individual fields (for persistence)
-  useEffect(()=>updateLocalStorageDebounced(K.base,baseCny),[baseCny])
-  useEffect(()=>updateLocalStorageDebounced(K.rate,rate),[rate])
-  useEffect(()=>updateLocalStorageDebounced(K.logi,logistics),[logistics])
-  useEffect(()=>updateLocalStorageDebounced(K.comm,commissionPct),[commissionPct])
-  useEffect(()=>updateLocalStorageDebounced(K.mark,markupPct),[markupPct])
+  useEffect(()=>localStorage.setItem(K.base,baseCny),[baseCny])
+  useEffect(()=>localStorage.setItem(K.rate,rate),[rate])
+  useEffect(()=>localStorage.setItem(K.logi,logistics),[logistics])
+  useEffect(()=>localStorage.setItem(K.comm,commissionPct),[commissionPct])
+  useEffect(()=>localStorage.setItem(K.mark,markupPct),[markupPct])
 
   const calc = useMemo(()=>{
     const baseRub = clamp(Number(baseCny))*clamp(Number(rate))
@@ -51,50 +43,29 @@ export default function App(){
   const finalDisplay = useTransform(mv, v => fmtRUB(v))
   useEffect(()=>{ const c=animate(mv, calc.finalPrice, {duration:0.35, ease:'easeOut'}); return ()=>c.stop() },[calc.finalPrice])
 
-  // history with debouncing
+  // history
   const [history,setHistory]=useState(()=> { try { return JSON.parse(localStorage.getItem(K.hist)||'[]') } catch { return [] } })
   
-  // Debounced history update
-  useEffect(()=>{
-    // Clear existing timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
+  // Manual calculation save to history
+  const saveToHistory = () => {
+    const entry = { 
+      t: new Date().toLocaleString(), 
+      base: Number(baseCny), 
+      rate: Number(rate), 
+      logi: Number(logistics), 
+      comm: Number(commissionPct), 
+      mark: Number(markupPct), 
+      final: Math.round(calc.finalPrice) 
     }
-
-    // Check if calculation actually changed (avoid duplicate entries)
-    const currentCalcKey = `${baseCny}-${rate}-${logistics}-${commissionPct}-${markupPct}`
-    if (previousCalcRef.current === currentCalcKey) {
-      return
-    }
-
-    // Set new timer
-    debounceTimerRef.current = setTimeout(() => {
-      const entry = { 
-        t: new Date().toLocaleString(), 
-        base: Number(baseCny), 
-        rate: Number(rate), 
-        logi: Number(logistics), 
-        comm: Number(commissionPct), 
-        mark: Number(markupPct), 
-        final: Math.round(calc.finalPrice) 
-      }
-      
-      setHistory(prev => {
-        const next = [entry, ...prev].slice(0,10)
-        localStorage.setItem(K.hist, JSON.stringify(next))
-        return next
-      })
-
-      previousCalcRef.current = currentCalcKey
-    }, 500) // 500ms debounce
-
-    // Cleanup function
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
-    }
-  },[baseCny, rate, logistics, commissionPct, markupPct, calc.finalPrice])
+    
+    setHistory(prev => {
+      const next = [entry, ...prev].slice(0,10)
+      localStorage.setItem(K.hist, JSON.stringify(next))
+      return next
+    })
+    
+    showToast('Расчёт сохранён в истории ✅')
+  }
 
   const [toast,setToast]=useState(null)
   
@@ -156,9 +127,12 @@ export default function App(){
                 <InputNumber label="Комиссия посредника (%)" value={commissionPct} onChange={setCommissionPct} step="0.1" />
                 <InputNumber label="Наценка (%)" value={markupPct} onChange={setMarkupPct} step="0.1" />
               </div>
-              <div className="mt-2 flex justify-center">
+              <div className="mt-2 flex gap-2 justify-center">
                 <button className="btn" onClick={copyCostPrice}>
                   Скопировать себестоимость
+                </button>
+                <button className="btn" onClick={saveToHistory} style={{backgroundColor: `${accentHex}22`, borderColor: accentHex}}>
+                  Рассчитать
                 </button>
               </div>
             </div>
