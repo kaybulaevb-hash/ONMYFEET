@@ -7,6 +7,50 @@ const clamp = (n,min=0,max=1_000_000_000)=> (isFinite(n)?Math.min(Math.max(n,min
 
 const K = { theme:'sc.theme', accent:'sc.accent', base:'sc.base', rate:'sc.rate', logi:'sc.logi', comm:'sc.comm', mark:'sc.mark', hist:'sc.history' }
 
+// Glass styles
+const glassStyles = `
+.glass-card { 
+  @apply rounded-2xl backdrop-blur-xl border shadow-2xl;
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  border-color: rgba(255,255,255,0.3);
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4);
+  padding: 1.5rem;
+}
+.dark .glass-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.glass-btn { 
+  @apply inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm shadow-lg transition-all duration-200 hover:scale-105;
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.dark .glass-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.glass-btn-sm { 
+  @apply text-xs px-3 py-1 rounded-lg transition-all duration-200 hover:scale-105;
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 0 4px 12px -2px rgba(0,0,0,0.1);
+}
+.dark .glass-btn-sm {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+`
+
+// Add styles to document
+if (typeof document !== 'undefined') {
+  const styleEl = document.createElement('style')
+  styleEl.textContent = glassStyles
+  document.head.appendChild(styleEl)
+}
+
 export default function App(){
   const [dark,setDark]=useState(()=> localStorage.getItem(K.theme)==='dark')
   const [accent,setAccent]=useState(()=> localStorage.getItem(K.accent) || 'green')
@@ -99,20 +143,81 @@ export default function App(){
   }
 
   return (
-    <div style={{'--accent':accentHex}}>
-      <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-white/50 dark:supports-[backdrop-filter]:bg-neutral-950/40">
+    <div style={{'--accent':accentHex}} className="min-h-screen bg-gradient-to-br from-neutral-50 via-neutral-100 to-neutral-200 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-800">
+      {/* Animated background blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          animate={{ 
+            x: [0, 100, 0], 
+            y: [0, -50, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ 
+            duration: 20, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
+          className="absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-30"
+          style={{
+            background: `radial-gradient(circle, ${accentHex}44, ${accentHex}11)`
+          }}
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, -80, 0], 
+            y: [0, 60, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ 
+            duration: 15, 
+            repeat: Infinity, 
+            ease: "easeInOut",
+            delay: -5
+          }}
+          className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full opacity-20"
+          style={{
+            background: `radial-gradient(circle, ${accentHex}33, transparent)`
+          }}
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, 50, 0], 
+            y: [0, -30, 0],
+            scale: [1, 0.9, 1]
+          }}
+          transition={{ 
+            duration: 12, 
+            repeat: Infinity, 
+            ease: "easeInOut",
+            delay: -8
+          }}
+          className="absolute top-1/2 left-1/4 w-64 h-64 rounded-full opacity-25"
+          style={{
+            background: `radial-gradient(circle, ${accentHex}22, transparent)`
+          }}
+        />
+      </div>
+
+      <header className="sticky top-0 z-30 backdrop-blur-xl supports-[backdrop-filter]:bg-white/30 dark:supports-[backdrop-filter]:bg-neutral-950/20 border-b border-white/20 dark:border-neutral-800/30">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
-            <span className="inline-block h-3 w-3 rounded-full" style={{background:accentHex}} />
-            <h1 className="text-2xl font-semibold tracking-tight">Sneaker Price Calculator</h1>
+            <motion.span 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="inline-block h-3 w-3 rounded-full" 
+              style={{background: `linear-gradient(45deg, ${accentHex}, ${accentHex}cc)`}} 
+            />
+            <h1 className="text-2xl font-semibold tracking-tight bg-gradient-to-r from-neutral-900 to-neutral-700 dark:from-neutral-100 dark:to-neutral-300 bg-clip-text text-transparent">
+              Sneaker Price Calculator
+            </h1>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 rounded-full border px-2 py-1 text-xs opacity-90">
-              <button className={`rounded-full px-2 py-1 ${ (localStorage.getItem(K.accent)||'green')==='green' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('green')}>#00ff88</button>
+            <div className="flex items-center gap-1 rounded-full backdrop-blur-md bg-white/60 dark:bg-neutral-800/40 border border-white/30 dark:border-neutral-700/50 px-2 py-1 text-xs shadow-lg">
+              <button className={`rounded-full px-2 py-1 transition-all ${ (localStorage.getItem(K.accent)||'green')==='green' ? 'bg-white/80 dark:bg-neutral-700/80 font-semibold shadow-sm':'opacity-60 hover:opacity-80'}`} onClick={()=>setAccent('green')}>#00ff88</button>
               <span className="opacity-40">/</span>
-              <button className={`rounded-full px-2 py-1 ${ (localStorage.getItem(K.accent)||'green')==='red' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('red')}>#ff4444</button>
+              <button className={`rounded-full px-2 py-1 transition-all ${ (localStorage.getItem(K.accent)||'green')==='red' ? 'bg-white/80 dark:bg-neutral-700/80 font-semibold shadow-sm':'opacity-60 hover:opacity-80'}`} onClick={()=>setAccent('red')}>#ff4444</button>
             </div>
-            <button onClick={()=>setDark(v=>!v)} className="btn">{dark?'Светлая':'Тёмная'}</button>
+            <button onClick={()=>setDark(v=>!v)} className="glass-btn">{dark?'☀️ Светлая':'🌙 Тёмная'}</button>
           </div>
         </div>
       </header>
@@ -235,7 +340,12 @@ export default function App(){
         {toast && (
           <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} exit={{y:40,opacity:0}} transition={{duration:0.25}}
             className="fixed bottom-4 left-0 right-0 z-50 flex justify-center pointer-events-none">
-            <div className="rounded-full px-4 py-2 text-sm shadow-lg pointer-events-auto" style={{background:'#202e1e',color:'#fff'}}>
+            <div className="rounded-full px-6 py-3 text-sm shadow-2xl pointer-events-auto backdrop-blur-xl border border-white/30" 
+                 style={{
+                   background: `linear-gradient(135deg, rgba(32,46,30,0.95), rgba(32,46,30,0.85))`,
+                   color: '#fff',
+                   boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 8px 20px -4px ${accentHex}33`
+                 }}>
               {toast.msg}
             </div>
           </motion.div>
@@ -261,6 +371,25 @@ function InputNumber({label,value,onChange,step='1'}){
         onChange={handleChange}
         onFocus={()=>{setFocused(true); if(value==='0') onChange('')}}
         onBlur={()=>{setFocused(false); if(value==='') onChange('0')}}
+        className="w-full rounded-2xl backdrop-blur-md bg-white/60 dark:bg-neutral-800/40 border border-white/30 dark:border-neutral-700/50 px-4 py-3 text-base outline-none transition-all duration-200 placeholder:opacity-40 shadow-lg"
+        style={{ 
+          boxShadow: focused ? `0 0 0 2px var(--accent), 0 8px 20px -4px rgba(0,0,0,0.1)` : '0 4px 12px -2px rgba(0,0,0,0.1)',
+          background: focused ? 'rgba(255,255,255,0.8) dark:rgba(255,255,255,0.1)' : undefined
+        }}
+        placeholder="0"
+      />
+    </label>
+  )
+}
+
+function Row({label,value}){
+  return (
+    <div className="flex items-center justify-between rounded-2xl backdrop-blur-md bg-white/40 dark:bg-neutral-800/30 border border-white/30 dark:border-neutral-700/50 px-4 py-3 text-sm shadow-lg">
+      <span className="opacity-70">{label}</span>
+      <span className="font-semibold">{value}</span>
+    </div>
+  )
+} onChange('0')}}
         className="w-full rounded-2xl border border-neutral-200/70 bg-transparent px-4 py-3 text-base outline-none transition placeholder:opacity-40 focus:border-transparent dark:border-neutral-800"
         style={{ boxShadow: focused ? `0 0 0 2px var(--accent)` : undefined }}
         placeholder="0"
