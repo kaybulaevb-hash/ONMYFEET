@@ -17,11 +17,15 @@ export default function App(){
   const accentHex = accent==='green' ? '#00ff88' : '#ff4444'
 
   // inputs as strings (to control leading zero behavior)
-  const [baseCny,setBaseCny]=useState(()=> localStorage.getItem(K.base) || '400')
-  const [rate,setRate]=useState(()=> localStorage.getItem(K.rate) || '13.2')
-  const [logistics,setLogistics]=useState(()=> localStorage.getItem(K.logi) || '1000')
-  const [commissionPct,setCommissionPct]=useState(()=> localStorage.getItem(K.comm) || '10')
-  const [markupPct,setMarkupPct]=useState(()=> localStorage.getItem(K.mark) || '50')
+  function App() {
+  const safeGet = (k, fallback) =>
+    (typeof window !== "undefined" ? localStorage.getItem(k) : null) ?? fallback;
+
+  const [baseCny, setBaseCny] = useState(() => safeGet(K.base, "400"));
+  const [rate, setRate] = useState(() => safeGet(K.rate, "13.2"));
+  const [logistics, setLogistics] = useState(() => safeGet(K.logi, "1000"));
+  const [commissionPct, setCommissionPct] = useState(() => safeGet(K.comm, "10"));
+  const [markupPct, setMarkupPct] = useState(() => safeGet(K.mark, "50"));
 
   useDebouncedLocalStorage(K.base, baseCny, 300)
   useDebouncedLocalStorage(K.rate, rate, 300)
