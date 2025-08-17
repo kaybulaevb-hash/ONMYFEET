@@ -1,1 +1,0 @@
-{\n  "framework": "vite",\n  "buildCommand": "npm run build",\n  "devCommand": "npm run dev",\n  "outputDirectory": "dist"\n}
