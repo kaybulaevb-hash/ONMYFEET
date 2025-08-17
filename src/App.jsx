@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react'
 import useDebouncedLocalStorage from './hooks/useDebouncedLocalStorage'
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from 'framer-motion'
@@ -10,17 +9,17 @@ const clamp = (n,min=0,max=1_000_000_000)=> (isFinite(n)?Math.min(Math.max(n,min
 const K = { theme:'sc.theme', accent:'sc.accent', base:'sc.base', rate:'sc.rate', logi:'sc.logi', comm:'sc.comm', mark:'sc.mark', hist:'sc.history' }
 
 export default function App(){
-  const [dark,setDark]=useState(()=> localStorage.getItem(K.theme)==='dark')
-  const [accent,setAccent]=useState(()=> localStorage.getItem(K.accent) || 'green')
-  useEffect(()=>{ localStorage.setItem(K.theme,dark?'dark':'light'); document.documentElement.classList.toggle('dark',dark) },[dark])
-  useEffect(()=>{ localStorage.setItem(K.accent,accent) },[accent])
+  // helper to safely read localStorage during client runtime
+  const safeGet = (k, fallback) =>
+    (typeof window !== 'undefined' ? localStorage.getItem(k) : null) ?? fallback;
+
+  const [dark,setDark]=useState(()=> safeGet(K.theme) === 'dark')
+  const [accent,setAccent]=useState(()=> safeGet(K.accent) || 'green')
+  useEffect(()=>{ if (typeof window !== 'undefined') { localStorage.setItem(K.theme,dark?'dark':'light'); document.documentElement.classList.toggle('dark',dark) } },[dark])
+  useEffect(()=>{ if (typeof window !== 'undefined') localStorage.setItem(K.accent,accent) },[accent])
   const accentHex = accent==='green' ? '#00ff88' : '#ff4444'
 
   // inputs as strings (to control leading zero behavior)
-  function App() {
-  const safeGet = (k, fallback) =>
-    (typeof window !== "undefined" ? localStorage.getItem(k) : null) ?? fallback;
-
   const [baseCny, setBaseCny] = useState(() => safeGet(K.base, "400"));
   const [rate, setRate] = useState(() => safeGet(K.rate, "13.2"));
   const [logistics, setLogistics] = useState(() => safeGet(K.logi, "1000"));
@@ -44,18 +43,29 @@ export default function App(){
     return { baseRub, commissionYuan, commissionRub, cost, markupRub, finalPrice, profit }
   },[baseCny,rate,logistics,commissionPct,markupPct])
 
+  // animated final price: use motion value but render a string value subscribed from the transform
   const mv = useMotionValue(calc.finalPrice)
   const finalDisplay = useTransform(mv, v => fmtRUB(v))
-  useEffect(()=>{ const c=animate(mv, calc.finalPrice, {duration:0.35, ease:'easeOut'}); return ()=>c.stop() },[calc.finalPrice])
+  const [finalText, setFinalText] = useState(fmtRUB(calc.finalPrice))
 
-  // history
-  const [history,setHistory]=useState(()=> { try { return JSON.parse(localStorage.getItem(K.hist)||'[]') } catch { return [] } })
+  useEffect(()=>{ const c = animate(mv, calc.finalPrice, {duration:0.35, ease:'easeOut'}); return ()=>c.stop() },[calc.finalPrice])
+
+  useEffect(()=>{
+    // set initial and subscribe to changes from the transformed motion value
+    try { setFinalText(finalDisplay.get ? finalDisplay.get() : fmtRUB(calc.finalPrice)) } catch { setFinalText(fmtRUB(calc.finalPrice)) }
+    const unsub = finalDisplay.onChange ? finalDisplay.onChange(v => setFinalText(v)) : () => {}
+    return () => { try { unsub() } catch {} }
+  },[finalDisplay, calc.finalPrice])
+
+  // history (use functional updater to avoid stale closure)
+  const [history,setHistory]=useState(()=> { try { return JSON.parse(safeGet(K.hist,'[]')) } catch { return [] } })
   useEffect(()=>{
     const entry = { t:new Date().toLocaleString(), base:Number(baseCny), rate:Number(rate), logi:Number(logistics), comm:Number(commissionPct), mark:Number(markupPct), final:Math.round(calc.finalPrice) }
-    const next=[entry, ...history].slice(0,10)
-    setHistory(next)
-    localStorage.setItem(K.hist, JSON.stringify(next))
-    // eslint-disable-next-line
+    setHistory(prev => {
+      const next = [entry, ...prev].slice(0,10)
+      try { if (typeof window !== 'undefined') localStorage.setItem(K.hist, JSON.stringify(next)) } catch(_) {}
+      return next
+    })
   },[calc.finalPrice])
 
   const [toast,setToast]=useState(null)
@@ -71,7 +81,7 @@ export default function App(){
       `Прибыль: ${fmtRUB(calc.profit)}`,
       `💰 Итог: ${fmtRUB(calc.finalPrice)}`,
     ].join('\\n')
-    await navigator.clipboard.writeText(fmtRUB(calc.finalPrice))
+    try { await navigator.clipboard.writeText(fmtRUB(calc.finalPrice)) } catch(_) {}
     setToast({type:'ok', msg:'Скопировано ✅'})
   }
 
@@ -85,9 +95,9 @@ export default function App(){
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 rounded-full border px-2 py-1 text-xs opacity-90">
-              <button className={`rounded-full px-2 py-1 ${ (localStorage.getItem(K.accent)||'green')==='green' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('green')}>#00ff88</button>
+              <button className={`rounded-full px-2 py-1 ${ (safeGet(K.accent)||'green')==='green' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('green')}>#00ff88</button>
               <span className="opacity-40">/</span>
-              <button className={`rounded-full px-2 py-1 ${ (localStorage.getItem(K.accent)||'green')==='red' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('red')}>#ff4444</button>
+              <button className={`rounded-full px-2 py-1 ${ (safeGet(K.accent)||'green')==='red' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('red')}>#ff4444</button>
             </div>
             <button onClick={()=>setDark(v=>!v)} className="btn">{dark?'Светлая':'Тёмная'}</button>
           </div>
@@ -131,7 +141,7 @@ export default function App(){
                     className="mt-1 font-extrabold tracking-tight"
                     style={{fontSize:'clamp(34px, 6vw, 56px)', color:accentHex, textShadow:`0 0 16px ${accentHex}55`}}
                   >
-                    {finalDisplay}
+                    {finalText}
                   </motion.div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -153,7 +163,7 @@ export default function App(){
         <section className="card mt-6">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold">История расчётов</h3>
-            {history.length>0 && <button className="btn" onClick={()=>{localStorage.removeItem(K.hist); setHistory([])}}>Очистить</button>}
+            {history.length>0 && <button className="btn" onClick={()=>{ if (typeof window !== 'undefined') localStorage.removeItem(K.hist); setHistory([])}}>Очистить</button>}
           </div>
           <ul className="mt-3 text-sm opacity-80 grid gap-1">
             {history.length===0 && <li>Пока пусто — сделайте расчёт.</li>}
