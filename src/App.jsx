@@ -7,50 +7,6 @@ const clamp = (n,min=0,max=1_000_000_000)=> (isFinite(n)?Math.min(Math.max(n,min
 
 const K = { theme:'sc.theme', accent:'sc.accent', base:'sc.base', rate:'sc.rate', logi:'sc.logi', comm:'sc.comm', mark:'sc.mark', hist:'sc.history' }
 
-// Glass styles
-const glassStyles = `
-.glass-card { 
-  @apply rounded-2xl backdrop-blur-xl border shadow-2xl;
-  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
-  border-color: rgba(255,255,255,0.3);
-  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4);
-  padding: 1.5rem;
-}
-.dark .glass-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
-  border-color: rgba(255,255,255,0.1);
-  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
-}
-.glass-btn { 
-  @apply inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm shadow-lg transition-all duration-200 hover:scale-105;
-  backdrop-filter: blur(12px);
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(255,255,255,0.3);
-}
-.dark .glass-btn {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-}
-.glass-btn-sm { 
-  @apply text-xs px-3 py-1 rounded-lg transition-all duration-200 hover:scale-105;
-  backdrop-filter: blur(8px);
-  background: rgba(255,255,255,0.7);
-  border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 0 4px 12px -2px rgba(0,0,0,0.1);
-}
-.dark .glass-btn-sm {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-}
-`
-
-// Add styles to document
-if (typeof document !== 'undefined') {
-  const styleEl = document.createElement('style')
-  styleEl.textContent = glassStyles
-  document.head.appendChild(styleEl)
-}
-
 export default function App(){
   const [dark,setDark]=useState(()=> localStorage.getItem(K.theme)==='dark')
   const [accent,setAccent]=useState(()=> localStorage.getItem(K.accent) || 'green')
@@ -217,7 +173,11 @@ export default function App(){
               <span className="opacity-40">/</span>
               <button className={`rounded-full px-2 py-1 transition-all ${ (localStorage.getItem(K.accent)||'green')==='red' ? 'bg-white/80 dark:bg-neutral-700/80 font-semibold shadow-sm':'opacity-60 hover:opacity-80'}`} onClick={()=>setAccent('red')}>#ff4444</button>
             </div>
-            <button onClick={()=>setDark(v=>!v)} className="glass-btn">{dark?'☀️ Светлая':'🌙 Тёмная'}</button>
+            <button onClick={()=>setDark(v=>!v)} className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm shadow-lg transition-all duration-200 hover:scale-105" style={{
+              backdropFilter: 'blur(12px)',
+              background: 'rgba(255,255,255,0.8)',
+              border: '1px solid rgba(255,255,255,0.3)'
+            }}>{dark?'☀️ Светлая':'🌙 Тёмная'}</button>
           </div>
         </div>
       </header>
