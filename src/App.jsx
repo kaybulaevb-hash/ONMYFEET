@@ -47,7 +47,7 @@ export default function App(){
   const [history,setHistory]=useState(()=> { try { return JSON.parse(localStorage.getItem(K.hist)||'[]') } catch { return [] } })
   
   // Manual calculation save to history
-  const saveToHistory = () => {
+  const saveToHistory = async () => {
     const entry = { 
       t: new Date().toLocaleString(), 
       base: Number(baseCny), 
@@ -64,7 +64,9 @@ export default function App(){
       return next
     })
     
-    showToast('Расчёт сохранён в истории ✅')
+    // Auto-copy final price to clipboard
+    await navigator.clipboard.writeText(fmtRUB(calc.finalPrice))
+    showToast('Расчёт сохранён! Цена скопирована 💰')
   }
 
   const [toast,setToast]=useState(null)
@@ -167,13 +169,13 @@ export default function App(){
             <motion.div layout className="mt-5 rounded-2xl p-4 shadow-md"
               style={{border:`1px solid ${accentHex}33`, boxShadow:`0 8px 28px -8px ${accentHex}55, inset 0 0 0 1px ${accentHex}1a`,
                 background:'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01))'}}>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="text-sm opacity-70">Финальная цена</div>
                   <motion.div
                     initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.35,ease:'easeOut'}}
                     className="mt-1 font-extrabold tracking-tight"
-                    style={{fontSize:'clamp(34px, 6vw, 56px)', color:accentHex, textShadow:`0 0 16px ${accentHex}55`}}
+                    style={{fontSize:'clamp(28px, 5vw, 42px)', color:accentHex, textShadow:`0 0 16px ${accentHex}55`}}
                   >
                     {finalDisplay}
                   </motion.div>
@@ -181,14 +183,14 @@ export default function App(){
                     Прибыль: <span className="font-semibold">{fmtRUB(calc.profit)}</span>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="rounded-xl px-3 py-2 text-right text-xs" style={{border:`1px dashed ${accentHex}55`}}>
-                    <div className="opacity-70">Наценка</div>
-                    <div className="font-semibold">{Number(markupPct).toFixed(1)}%</div>
-                    <div className="font-semibold">{fmtRUB(calc.markupRub)}</div>
+                <div className="flex flex-col items-end gap-3">
+                  <div className="rounded-xl px-4 py-3 text-right text-sm border-2" style={{borderColor:`${accentHex}44`, background:`${accentHex}08`}}>
+                    <div className="opacity-70 text-xs">Наценка</div>
+                    <div className="font-bold text-lg" style={{color:accentHex}}>{Number(markupPct).toFixed(1)}%</div>
+                    <div className="font-semibold text-sm mt-1">{fmtRUB(calc.markupRub)}</div>
                   </div>
                   <button className="text-xs px-3 py-1 rounded-lg border opacity-70 hover:opacity-100 transition-opacity" onClick={copySummary}>
-                    📋 Скопировать детали
+                    📋 Детальный отчёт
                   </button>
                 </div>
               </div>
