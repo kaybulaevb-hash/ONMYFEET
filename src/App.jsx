@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from 'framer-motion'
 
 const fmtRUB = (n) => new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(isFinite(n)?Math.round(n):0)
@@ -8,98 +8,25 @@ const clamp = (n,min=0,max=1_000_000_000)=> (isFinite(n)?Math.min(Math.max(n,min
 const K = { theme:'sc.theme', accent:'sc.accent', base:'sc.base', rate:'sc.rate', logi:'sc.logi', comm:'sc.comm', mark:'sc.mark', hist:'sc.history' }
 
 export default function App(){
-  const [dark,setDark]=useState(()=> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(K.theme)==='dark'
-    }
-    return false
-  })
-  const [accent,setAccent]=useState(()=> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(K.accent) || 'purple'
-    }
-    return 'purple'
-  })
-  
-  useEffect(()=>{ 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(K.theme,dark?'dark':'light'); 
-      document.documentElement.classList.toggle('dark',dark) 
-    }
-  },[dark])
-  useEffect(()=>{ 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(K.accent,accent) 
-    }
-  },[accent])
-  
-  const accentColors = {
-    purple: { primary: '#8B5CF6', secondary: '#A78BFA', bg: 'from-purple-900 via-blue-900 to-indigo-900' },
-    cyan: { primary: '#06B6D4', secondary: '#67E8F9', bg: 'from-cyan-900 via-teal-900 to-blue-900' },
-    orange: { primary: '#F97316', secondary: '#FB923C', bg: 'from-orange-900 via-red-900 to-pink-900' },
-    green: { primary: '#10B981', secondary: '#34D399', bg: 'from-emerald-900 via-green-900 to-teal-900' }
-  }
-  
-  const currentAccent = accentColors[accent]
+  const [dark,setDark]=useState(()=> localStorage.getItem(K.theme)==='dark')
+  const [accent,setAccent]=useState(()=> localStorage.getItem(K.accent) || 'green')
+  useEffect(()=>{ localStorage.setItem(K.theme,dark?'dark':'light'); document.documentElement.classList.toggle('dark',dark) },[dark])
+  useEffect(()=>{ localStorage.setItem(K.accent,accent) },[accent])
+  const accentHex = accent==='green' ? '#00ff88' : '#ff4444'
 
-  // inputs as strings
-  const [baseCny,setBaseCny]=useState(()=> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(K.base) || '400'
-    }
-    return '400'
-  })
-  const [rate,setRate]=useState(()=> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(K.rate) || '13.2'
-    }
-    return '13.2'
-  })
-  const [logistics,setLogistics]=useState(()=> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(K.logi) || '1000'
-    }
-    return '1000'
-  })
-  const [commissionPct,setCommissionPct]=useState(()=> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(K.comm) || '10'
-    }
-    return '10'
-  })
-  const [markupPct,setMarkupPct]=useState(()=> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(K.mark) || '50'
-    }
-    return '50'
-  })
+  // inputs as strings (to control leading zero behavior)
+  const [baseCny,setBaseCny]=useState(()=> localStorage.getItem(K.base) || '400')
+  const [rate,setRate]=useState(()=> localStorage.getItem(K.rate) || '13.2')
+  const [logistics,setLogistics]=useState(()=> localStorage.getItem(K.logi) || '1000')
+  const [commissionPct,setCommissionPct]=useState(()=> localStorage.getItem(K.comm) || '10')
+  const [markupPct,setMarkupPct]=useState(()=> localStorage.getItem(K.mark) || '50')
 
-  // Save to localStorage
-  useEffect(()=>{
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(K.base,baseCny)
-    }
-  },[baseCny])
-  useEffect(()=>{
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(K.rate,rate)
-    }
-  },[rate])
-  useEffect(()=>{
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(K.logi,logistics)
-    }
-  },[logistics])
-  useEffect(()=>{
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(K.comm,commissionPct)
-    }
-  },[commissionPct])
-  useEffect(()=>{
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(K.mark,markupPct)
-    }
-  },[markupPct])
+  // Immediate localStorage updates for individual fields (for persistence)
+  useEffect(()=>localStorage.setItem(K.base,baseCny),[baseCny])
+  useEffect(()=>localStorage.setItem(K.rate,rate),[rate])
+  useEffect(()=>localStorage.setItem(K.logi,logistics),[logistics])
+  useEffect(()=>localStorage.setItem(K.comm,commissionPct),[commissionPct])
+  useEffect(()=>localStorage.setItem(K.mark,markupPct),[markupPct])
 
   const calc = useMemo(()=>{
     const baseRub = clamp(Number(baseCny))*clamp(Number(rate))
@@ -114,20 +41,12 @@ export default function App(){
 
   const mv = useMotionValue(calc.finalPrice)
   const finalDisplay = useTransform(mv, v => fmtRUB(v))
-  useEffect(()=>{ const c=animate(mv, calc.finalPrice, {duration:0.4, ease:'easeOut'}); return ()=>c.stop() },[calc.finalPrice])
+  useEffect(()=>{ const c=animate(mv, calc.finalPrice, {duration:0.35, ease:'easeOut'}); return ()=>c.stop() },[calc.finalPrice])
 
   // history
-  const [history,setHistory]=useState(()=> { 
-    if (typeof window !== 'undefined') {
-      try { 
-        return JSON.parse(localStorage.getItem(K.hist)||'[]') 
-      } catch { 
-        return [] 
-      }
-    }
-    return []
-  })
+  const [history,setHistory]=useState(()=> { try { return JSON.parse(localStorage.getItem(K.hist)||'[]') } catch { return [] } })
   
+  // Manual calculation save to history
   const saveToHistory = async () => {
     const entry = { 
       t: new Date().toLocaleString(), 
@@ -141,29 +60,20 @@ export default function App(){
     
     setHistory(prev => {
       const next = [entry, ...prev].slice(0,10)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(K.hist, JSON.stringify(next))
-      }
+      localStorage.setItem(K.hist, JSON.stringify(next))
       return next
     })
     
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(fmtRUB(calc.finalPrice))
-        showToast('💰 Расчёт сохранён! Цена скопирована')
-      } catch {
-        showToast('💰 Расчёт сохранён!')
-      }
-    } else {
-      showToast('💰 Расчёт сохранён!')
-    }
+    // Auto-copy final price to clipboard
+    await navigator.clipboard.writeText(fmtRUB(calc.finalPrice))
+    showToast('Расчёт сохранён! Цена скопирована 💰')
   }
 
   const [toast,setToast]=useState(null)
   
   const showToast = (msg) => {
-    setToast({msg})
-    setTimeout(() => setToast(null), 2500)
+    setToast({type:'ok', msg})
+    setTimeout(() => setToast(null), 2000)
   }
 
   const copySummary = async () => {
@@ -178,299 +88,154 @@ export default function App(){
       `Прибыль: ${fmtRUB(calc.profit)}`,
       `💰 Итог: ${fmtRUB(calc.finalPrice)}`,
     ].join('\n')
-    
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(text)
-        showToast('📋 Детальный отчёт скопирован!')
-      } catch {
-        showToast('❌ Ошибка копирования')
-      }
-    }
+    await navigator.clipboard.writeText(text)
+    showToast('Скопировано ✅')
+  }
+
+  const copyCostPrice = async () => {
+    const text = `Себестоимость: ${fmtRUB(calc.cost)}`
+    await navigator.clipboard.writeText(text)
+    showToast('Себестоимость скопирована ✅')
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0 opacity-30">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-slate-900 to-slate-900"></div>
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3],
-            rotate: [0, 180, 360]
-          }}
-          transition={{ 
-            duration: 20, 
-            repeat: Infinity, 
-            ease: "linear" 
-          }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full"
-          style={{
-            background: `radial-gradient(circle, ${currentAccent.primary}40, transparent 70%)`
-          }}
-        />
-        <motion.div 
-          animate={{ 
-            scale: [1.2, 1, 1.2],
-            opacity: [0.2, 0.5, 0.2],
-            rotate: [360, 180, 0]
-          }}
-          transition={{ 
-            duration: 15, 
-            repeat: Infinity, 
-            ease: "linear" 
-          }}
-          className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full"
-          style={{
-            background: `radial-gradient(circle, ${currentAccent.secondary}30, transparent 70%)`
-          }}
-        />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                className="w-8 h-8 rounded-full bg-gradient-to-r flex items-center justify-center text-lg"
-                style={{ background: `linear-gradient(45deg, ${currentAccent.primary}, ${currentAccent.secondary})` }}
-              >
-                👟
-              </motion.div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                Sneaker Calculator Pro
-              </h1>
+    <div style={{'--accent':accentHex}}>
+      <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-white/50 dark:supports-[backdrop-filter]:bg-neutral-950/40">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <span className="inline-block h-3 w-3 rounded-full" style={{background:accentHex}} />
+            <h1 className="text-2xl font-semibold tracking-tight">Sneaker Price Calculator</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-full border px-2 py-1 text-xs opacity-90">
+              <button className={`rounded-full px-2 py-1 ${ (localStorage.getItem(K.accent)||'green')==='green' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('green')}>#00ff88</button>
+              <span className="opacity-40">/</span>
+              <button className={`rounded-full px-2 py-1 ${ (localStorage.getItem(K.accent)||'green')==='red' ? 'font-semibold':'opacity-60'}`} onClick={()=>setAccent('red')}>#ff4444</button>
             </div>
-            
-            <div className="flex items-center gap-4">
-              {/* Theme Colors */}
-              <div className="flex gap-2 p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
-                {Object.entries(accentColors).map(([key, colors]) => (
-                  <button
-                    key={key}
-                    onClick={() => setAccent(key)}
-                    className={`w-6 h-6 rounded-full transition-all ${accent === key ? 'ring-2 ring-white/50 scale-110' : 'hover:scale-105'}`}
-                    style={{ background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})` }}
-                  />
-                ))}
-              </div>
-              
-              {/* Dark Mode Toggle */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setDark(!dark)}
-                className="p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all"
-              >
-                {dark ? '☀️' : '🌙'}
-              </motion.button>
-            </div>
+            <button onClick={()=>setDark(v=>!v)} className="btn">{dark?'Светлая':'Тёмная'}</button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="relative z-10 max-w-6xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Input Section */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8"
-          >
-            <h2 className="text-xl font-semibold mb-6 text-center">
-              <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                💼 Параметры расчёта
-              </span>
-            </h2>
-            
-            <div className="space-y-6">
-              <InputField 
-                label="Базовая стоимость (¥)" 
-                value={baseCny} 
-                onChange={setBaseCny} 
-                icon="💰"
-                accentColor={currentAccent.primary}
-              />
-              <InputField 
-                label="Курс юаня (₽)" 
-                value={rate} 
-                onChange={setRate} 
-                step="0.01" 
-                icon="📈"
-                accentColor={currentAccent.primary}
-              />
-              <InputField 
-                label="Логистика (₽)" 
-                value={logistics} 
-                onChange={setLogistics} 
-                icon="🚚"
-                accentColor={currentAccent.primary}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <InputField 
-                  label="Комиссия (%)" 
-                  value={commissionPct} 
-                  onChange={setCommissionPct} 
-                  step="0.1" 
-                  icon="🏦"
-                  accentColor={currentAccent.primary}
-                />
-                <InputField 
-                  label="Наценка (%)" 
-                  value={markupPct} 
-                  onChange={setMarkupPct} 
-                  step="0.1" 
-                  icon="📊"
-                  accentColor={currentAccent.primary}
-                />
+      <main className="mx-auto max-w-5xl px-4 py-8">
+        <motion.div layout className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <section className="card">
+            <h2 className="mb-4 text-lg font-semibold">Ввод данных</h2>
+            <div className="grid gap-3">
+              <InputNumber label="Базовая стоимость (¥)" value={baseCny} onChange={setBaseCny} />
+              <InputNumber label="Курс юаня к рублю (₽)" value={rate} onChange={setRate} step="0.01" />
+              <InputNumber label="Логистика (₽)" value={logistics} onChange={setLogistics} />
+              <div className="grid grid-cols-2 gap-3">
+                <InputNumber label="Комиссия посредника (%)" value={commissionPct} onChange={setCommissionPct} step="0.1" />
+                <InputNumber label="Наценка (%)" value={markupPct} onChange={setMarkupPct} step="0.1" />
               </div>
               
-              <motion.button
+              {/* Main Calculate Button */}
+              <motion.button 
+                onClick={saveToHistory}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={saveToHistory}
-                className="w-full py-4 rounded-2xl font-semibold text-lg text-white shadow-2xl transition-all"
+                className="mt-4 w-full rounded-2xl px-6 py-4 text-lg font-semibold shadow-lg transition-all duration-200"
                 style={{
-                  background: `linear-gradient(135deg, ${currentAccent.primary}, ${currentAccent.secondary})`,
-                  boxShadow: `0 10px 30px ${currentAccent.primary}40`
+                  background: `linear-gradient(135deg, ${accentHex}, ${accentHex}dd)`,
+                  color: '#fff',
+                  boxShadow: `0 8px 20px -4px ${accentHex}55, 0 4px 12px -2px ${accentHex}33`
                 }}
               >
                 🧮 Рассчитать и сохранить
               </motion.button>
-            </div>
-          </motion.div>
-
-          {/* Results Section */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8"
-          >
-            <h2 className="text-xl font-semibold mb-6 text-center">
-              <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                📊 Результаты
-              </span>
-            </h2>
-            
-            <div className="space-y-4 mb-8">
-              <ResultRow label="Стоимость в юанях" value={fmtCNY(Number(baseCny))} />
-              <ResultRow label="Перевод в рубли" value={fmtRUB(calc.baseRub)} />
-              <ResultRow label={`Комиссия (${commissionPct}%)`} value={`${fmtCNY(calc.commissionYuan)} → ${fmtRUB(calc.commissionRub)}`} />
-              <ResultRow label="Логистика" value={fmtRUB(Number(logistics))} />
-              <ResultRow label="Себестоимость" value={fmtRUB(calc.cost)} />
-              <ResultRow label="Прибыль" value={fmtRUB(calc.profit)} />
-            </div>
-
-            {/* Final Price Card */}
-            <motion.div
-              className="rounded-2xl p-6 text-center border"
-              style={{
-                background: `linear-gradient(135deg, ${currentAccent.primary}20, ${currentAccent.secondary}10)`,
-                borderColor: `${currentAccent.primary}40`,
-                boxShadow: `0 0 30px ${currentAccent.primary}20`
-              }}
-            >
-              <div className="text-sm opacity-80 mb-2">Финальная цена</div>
-              <motion.div
-                className="text-4xl font-black mb-4"
-                style={{ 
-                  background: `linear-gradient(135deg, ${currentAccent.primary}, ${currentAccent.secondary})`,
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  color: 'transparent'
-                }}
-              >
-                {finalDisplay}
-              </motion.div>
               
-              <div className="flex gap-3">
-                <button
-                  onClick={copySummary}
-                  className="flex-1 py-2 px-4 bg-white/10 rounded-lg hover:bg-white/20 transition-all text-sm"
-                >
-                  📋 Копировать отчёт
-                </button>
+              {/* Secondary Action */}
+              <button 
+                className="mt-2 w-full text-sm opacity-70 hover:opacity-100 transition-opacity underline underline-offset-2" 
+                onClick={copyCostPrice}
+              >
+                Скопировать себестоимость ({fmtRUB(calc.cost)})
+              </button>
+            </div>
+          </section>
+
+          <section className="card">
+            <h2 className="mb-4 text-lg font-semibold">Результаты</h2>
+            <div className="grid gap-3">
+              <Row label="Стоимость в юанях" value={fmtCNY(Number(baseCny))} />
+              <Row label="Перевод в рубли" value={fmtRUB(calc.baseRub)} />
+              <Row label={`Комиссия (${commissionPct}% от базы)`} value={`${fmtCNY(calc.commissionYuan)} → ${fmtRUB(calc.commissionRub)}`} />
+              <Row label="Логистика" value={fmtRUB(Number(logistics))} />
+              <Row label="Себестоимость" value={fmtRUB(calc.cost)} />
+              <Row label="Прибыль" value={fmtRUB(calc.profit)} />
+            </div>
+
+            <motion.div layout className="mt-5 rounded-2xl p-4 shadow-md"
+              style={{border:`1px solid ${accentHex}33`, boxShadow:`0 8px 28px -8px ${accentHex}55, inset 0 0 0 1px ${accentHex}1a`,
+                background:'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01))'}}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="text-sm opacity-70">Финальная цена</div>
+                  <motion.div
+                    initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.35,ease:'easeOut'}}
+                    className="mt-1 font-extrabold tracking-tight"
+                    style={{fontSize:'clamp(28px, 5vw, 42px)', color:accentHex, textShadow:`0 0 16px ${accentHex}55`}}
+                  >
+                    {finalDisplay}
+                  </motion.div>
+                  <div className="mt-2 text-xs opacity-60">
+                    Прибыль: <span className="font-semibold">{fmtRUB(calc.profit)}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <div className="rounded-xl px-4 py-3 text-right text-sm border-2" style={{borderColor:`${accentHex}44`, background:`${accentHex}08`}}>
+                    <div className="opacity-70 text-xs">Наценка</div>
+                    <div className="font-bold text-lg" style={{color:accentHex}}>{Number(markupPct).toFixed(1)}%</div>
+                    <div className="font-semibold text-sm mt-1">{fmtRUB(calc.markupRub)}</div>
+                  </div>
+                  <button className="text-xs px-3 py-1 rounded-lg border opacity-70 hover:opacity-100 transition-opacity" onClick={copySummary}>
+                    📋 Детальный отчёт
+                  </button>
+                </div>
               </div>
             </motion.div>
-          </motion.div>
-        </div>
 
-        {/* History Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-12 bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">💾 История расчётов</h3>
-            {history.length > 0 && (
-              <button
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    localStorage.removeItem(K.hist)
-                  }
-                  setHistory([])
-                  showToast('🗑️ История очищена')
-                }}
-                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-all text-sm border border-red-500/40"
-              >
-                🗑️ Очистить
-              </button>
-            )}
+            <p className="mt-4 text-xs opacity-60">
+              💡 Расчёты обновляются мгновенно. Нажмите кнопку выше для сохранения в историю.
+            </p>
+          </section>
+        </motion.div>
+
+        <section className="card mt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold">💾 История расчётов</h3>
+            {history.length>0 && <button className="text-xs px-3 py-1 rounded-lg border opacity-70 hover:opacity-100 transition-opacity" onClick={()=>{localStorage.removeItem(K.hist); setHistory([])}}>🗑️ Очистить</button>}
           </div>
-          
-          {history.length === 0 ? (
-            <div className="text-center py-12 opacity-60">
-              <div className="text-6xl mb-4">📈</div>
-              <p>История пуста</p>
-              <p className="text-sm mt-2 opacity-70">Сделайте первый расчёт</p>
+          {history.length===0 ? (
+            <div className="mt-4 text-center py-8 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 opacity-50">
+              <div className="text-sm">История пуста</div>
+              <div className="text-xs mt-1">Нажмите "Рассчитать и сохранить" чтобы добавить запись</div>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {history.slice(0, 5).map((item, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10"
-                >
+            <ul className="mt-3 text-sm opacity-90 grid gap-2">
+              {history.map((h,i)=>(
+                <li key={i} className="flex justify-between items-center p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/50 dark:border-neutral-700/50">
                   <div>
-                    <div className="font-bold text-lg" style={{ color: currentAccent.primary }}>
-                      {fmtRUB(item.final)}
-                    </div>
-                    <div className="text-sm opacity-70">{item.t}</div>
+                    <div className="font-medium">{fmtRUB(h.final)}</div>
+                    <div className="text-xs opacity-70">{h.t}</div>
                   </div>
-                  <div className="text-right text-sm opacity-80">
-                    <div>База: {fmtCNY(item.base)}</div>
-                    <div>Курс: {item.rate}</div>
+                  <div className="text-xs opacity-60 text-right">
+                    <div>База: {fmtCNY(h.base)}</div>
+                    <div>Курс: {h.rate}</div>
                   </div>
-                </motion.div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </motion.div>
+        </section>
       </main>
 
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
-          >
-            <div className="bg-black/80 backdrop-blur-xl border border-white/20 rounded-full px-6 py-3 text-white font-medium shadow-2xl">
+          <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} exit={{y:40,opacity:0}} transition={{duration:0.25}}
+            className="fixed bottom-4 left-0 right-0 z-50 flex justify-center pointer-events-none">
+            <div className="rounded-full px-4 py-2 text-sm shadow-lg pointer-events-auto" style={{background:'#202e1e',color:'#fff'}}>
               {toast.msg}
             </div>
           </motion.div>
@@ -480,54 +245,34 @@ export default function App(){
   )
 }
 
-function InputField({ label, value, onChange, step = '1', icon, accentColor }) {
-  const [focused, setFocused] = useState(false)
-  
-  const handleChange = (e) => {
-    let v = e.target.value
-    if (v.length > 1 && v.startsWith('0')) {
-      v = v.replace(/^0+/, '')
-      if (v === '') v = '0'
-    }
+function InputNumber({label,value,onChange,step='1'}){
+  const [focused,setFocused]=useState(false)
+  const handleChange=(e)=>{
+    let v=e.target.value
+    if(v.length>1 && v.startsWith('0')){ v=v.replace(/^0+/,''); if(v==='') v='0' }
     onChange(v)
   }
-
   return (
-    <div className="space-y-2">
-      <label className="flex items-center gap-2 text-sm font-medium opacity-90">
-        <span>{icon}</span>
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          type="number"
-          step={step}
-          value={value}
-          onChange={handleChange}
-          onFocus={() => {
-            setFocused(true)
-            if (value === '0') onChange('')
-          }}
-          onBlur={() => {
-            setFocused(false)
-            if (value === '') onChange('0')
-          }}
-          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 outline-none transition-all"
-          style={{
-            borderColor: focused ? accentColor : undefined,
-            boxShadow: focused ? `0 0 0 2px ${accentColor}40` : undefined
-          }}
-          placeholder="0"
-        />
+    <label className="block">
+      <div className="mb-1 flex items-center justify-between text-sm opacity-70">
+        <span>{label}</span>
       </div>
-    </div>
+      <input type="number" step={step} value={value}
+        onChange={handleChange}
+        onFocus={()=>{setFocused(true); if(value==='0') onChange('')}}
+        onBlur={()=>{setFocused(false); if(value==='') onChange('0')}}
+        className="w-full rounded-2xl border border-neutral-200/70 bg-transparent px-4 py-3 text-base outline-none transition placeholder:opacity-40 focus:border-transparent dark:border-neutral-800"
+        style={{ boxShadow: focused ? `0 0 0 2px var(--accent)` : undefined }}
+        placeholder="0"
+      />
+    </label>
   )
 }
 
-function ResultRow({ label, value }) {
+function Row({label,value}){
   return (
-    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/10">
-      <span className="text-sm opacity-80">{label}</span>
+    <div className="flex items-center justify-between rounded-2xl border border-neutral-200/60 bg-neutral-50/60 px-4 py-3 text-sm dark:border-neutral-800 dark:bg-neutral-800/40">
+      <span className="opacity-70">{label}</span>
       <span className="font-semibold">{value}</span>
     </div>
   )
