@@ -1,5 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
+import useDebouncedLocalStorage from './hooks/useDebouncedLocalStorage'
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from 'framer-motion'
 
 const fmtRUB = (n) => new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(isFinite(n)?Math.round(n):0)
@@ -22,11 +23,11 @@ export default function App(){
   const [commissionPct,setCommissionPct]=useState(()=> localStorage.getItem(K.comm) || '10')
   const [markupPct,setMarkupPct]=useState(()=> localStorage.getItem(K.mark) || '50')
 
-  useEffect(()=>localStorage.setItem(K.base,baseCny),[baseCny])
-  useEffect(()=>localStorage.setItem(K.rate,rate),[rate])
-  useEffect(()=>localStorage.setItem(K.logi,logistics),[logistics])
-  useEffect(()=>localStorage.setItem(K.comm,commissionPct),[commissionPct])
-  useEffect(()=>localStorage.setItem(K.mark,markupPct),[markupPct])
+  useDebouncedLocalStorage(K.base, baseCny, 300)
+  useDebouncedLocalStorage(K.rate, rate, 300)
+  useDebouncedLocalStorage(K.logi, logistics, 300)
+  useDebouncedLocalStorage(K.comm, commissionPct, 300)
+  useDebouncedLocalStorage(K.mark, markupPct, 300)
 
   const calc = useMemo(()=>{
     const baseRub = clamp(Number(baseCny))*clamp(Number(rate))
