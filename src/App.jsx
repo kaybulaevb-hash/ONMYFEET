@@ -127,14 +127,29 @@ export default function App(){
                 <InputNumber label="Комиссия посредника (%)" value={commissionPct} onChange={setCommissionPct} step="0.1" />
                 <InputNumber label="Наценка (%)" value={markupPct} onChange={setMarkupPct} step="0.1" />
               </div>
-              <div className="mt-2 flex gap-2 justify-center">
-                <button className="btn" onClick={copyCostPrice}>
-                  Скопировать себестоимость
-                </button>
-                <button className="btn" onClick={saveToHistory} style={{backgroundColor: `${accentHex}22`, borderColor: accentHex}}>
-                  Рассчитать
-                </button>
-              </div>
+              
+              {/* Main Calculate Button */}
+              <motion.button 
+                onClick={saveToHistory}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="mt-4 w-full rounded-2xl px-6 py-4 text-lg font-semibold shadow-lg transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${accentHex}, ${accentHex}dd)`,
+                  color: '#fff',
+                  boxShadow: `0 8px 20px -4px ${accentHex}55, 0 4px 12px -2px ${accentHex}33`
+                }}
+              >
+                🧮 Рассчитать и сохранить
+              </motion.button>
+              
+              {/* Secondary Action */}
+              <button 
+                className="mt-2 w-full text-sm opacity-70 hover:opacity-100 transition-opacity underline underline-offset-2" 
+                onClick={copyCostPrice}
+              >
+                Скопировать себестоимость ({fmtRUB(calc.cost)})
+              </button>
             </div>
           </section>
 
@@ -153,7 +168,7 @@ export default function App(){
               style={{border:`1px solid ${accentHex}33`, boxShadow:`0 8px 28px -8px ${accentHex}55, inset 0 0 0 1px ${accentHex}1a`,
                 background:'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01))'}}>
               <div className="flex items-center justify-between gap-2">
-                <div>
+                <div className="flex-1">
                   <div className="text-sm opacity-70">Финальная цена</div>
                   <motion.div
                     initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.35,ease:'easeOut'}}
@@ -162,37 +177,55 @@ export default function App(){
                   >
                     {finalDisplay}
                   </motion.div>
+                  <div className="mt-2 text-xs opacity-60">
+                    Прибыль: <span className="font-semibold">{fmtRUB(calc.profit)}</span>
+                  </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <div className="rounded-2xl px-3 py-2 text-right text-xs" style={{border:`1px dashed ${accentHex}55`}}>
+                  <div className="rounded-xl px-3 py-2 text-right text-xs" style={{border:`1px dashed ${accentHex}55`}}>
                     <div className="opacity-70">Наценка</div>
-                    <div className="font-semibold">{Number(markupPct).toFixed(1)}% · {fmtRUB(calc.markupRub)}</div>
+                    <div className="font-semibold">{Number(markupPct).toFixed(1)}%</div>
+                    <div className="font-semibold">{fmtRUB(calc.markupRub)}</div>
                   </div>
-                  <button className="btn" onClick={copySummary}>Скопировать итог</button>
+                  <button className="text-xs px-3 py-1 rounded-lg border opacity-70 hover:opacity-100 transition-opacity" onClick={copySummary}>
+                    📋 Скопировать детали
+                  </button>
                 </div>
               </div>
             </motion.div>
 
-            <p className="mt-4 text-xs opacity-70">
-              Формула: (База ¥ × курс ₽ + логистика + комиссия(¥→₽)) × (1 + наценка%). Пересчёт мгновенный, значения сохраняются в LocalStorage.
+            <p className="mt-4 text-xs opacity-60">
+              💡 Расчёты обновляются мгновенно. Нажмите кнопку выше для сохранения в историю.
             </p>
           </section>
         </motion.div>
 
         <section className="card mt-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">История расчётов</h3>
-            {history.length>0 && <button className="btn" onClick={()=>{localStorage.removeItem(K.hist); setHistory([])}}>Очистить</button>}
+            <h3 className="text-base font-semibold">💾 История расчётов</h3>
+            {history.length>0 && <button className="text-xs px-3 py-1 rounded-lg border opacity-70 hover:opacity-100 transition-opacity" onClick={()=>{localStorage.removeItem(K.hist); setHistory([])}}>🗑️ Очистить</button>}
           </div>
-          <ul className="mt-3 text-sm opacity-80 grid gap-1">
-            {history.length===0 && <li>Пока пусто — сделайте расчёт.</li>}
-            {history.map((h,i)=>(
-              <li key={i} className="flex justify-between">
-                <span>{h.t}</span>
-                <span className="font-semibold">{fmtRUB(h.final)}</span>
-              </li>
-            ))}
-          </ul>
+          {history.length===0 ? (
+            <div className="mt-4 text-center py-8 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 opacity-50">
+              <div className="text-sm">История пуста</div>
+              <div className="text-xs mt-1">Нажмите "Рассчитать и сохранить" чтобы добавить запись</div>
+            </div>
+          ) : (
+            <ul className="mt-3 text-sm opacity-90 grid gap-2">
+              {history.map((h,i)=>(
+                <li key={i} className="flex justify-between items-center p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/50 dark:border-neutral-700/50">
+                  <div>
+                    <div className="font-medium">{fmtRUB(h.final)}</div>
+                    <div className="text-xs opacity-70">{h.t}</div>
+                  </div>
+                  <div className="text-xs opacity-60 text-right">
+                    <div>База: {fmtCNY(h.base)}</div>
+                    <div>Курс: {h.rate}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </main>
 
