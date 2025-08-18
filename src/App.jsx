@@ -18,26 +18,26 @@ export default function App(){
   const [baseCny,setBaseCny]=useState(()=> localStorage.getItem(K.base) || '400')
   const [rate,setRate]=useState(()=> localStorage.getItem(K.rate) || '13.2')
   const [logistics,setLogistics]=useState(()=> localStorage.getItem(K.logi) || '1000')
-  const [commissionPct,setCommissionPct]=useState(()=> localStorage.getItem(K.comm) || '10')
+  const [commissionRub,setCommissionRub]=useState(()=> localStorage.getItem(K.comm) || '500')
   const [markupPct,setMarkupPct]=useState(()=> localStorage.getItem(K.mark) || '50')
 
   // Immediate localStorage updates for individual fields (for persistence)
   useEffect(()=>localStorage.setItem(K.base,baseCny),[baseCny])
   useEffect(()=>localStorage.setItem(K.rate,rate),[rate])
   useEffect(()=>localStorage.setItem(K.logi,logistics),[logistics])
-  useEffect(()=>localStorage.setItem(K.comm,commissionPct),[commissionPct])
+  useEffect(()=>localStorage.setItem(K.comm,commissionRub),[commissionRub])
   useEffect(()=>localStorage.setItem(K.mark,markupPct),[markupPct])
 
   const calc = useMemo(()=>{
     const baseRub = clamp(Number(baseCny))*clamp(Number(rate))
-    const commissionYuan = clamp(Number(baseCny))*clamp(Number(commissionPct))/100
-    const commissionRub = commissionYuan*clamp(Number(rate))
-    const cost = baseRub + clamp(Number(logistics)) + commissionRub
+    const commissionValue = clamp(Number(commissionRub))
+    const commissionYuan = commissionValue / clamp(Number(rate))
+    const cost = baseRub + clamp(Number(logistics)) + commissionValue
     const markupRub = cost * (clamp(Number(markupPct))/100)
     const finalPrice = cost + markupRub
     const profit = finalPrice - cost
-    return { baseRub, commissionYuan, commissionRub, cost, markupRub, finalPrice, profit }
-  },[baseCny,rate,logistics,commissionPct,markupPct])
+    return { baseRub, commissionYuan, commissionRub: commissionValue, cost, markupRub, finalPrice, profit }
+  },[baseCny,rate,logistics,commissionRub,markupPct])
 
   const mv = useMotionValue(calc.finalPrice)
   const finalDisplay = useTransform(mv, v => fmtRUB(v))
@@ -53,7 +53,7 @@ export default function App(){
       base: Number(baseCny), 
       rate: Number(rate), 
       logi: Number(logistics), 
-      comm: Number(commissionPct), 
+      comm: Number(commissionRub), 
       mark: Number(markupPct), 
       final: Math.round(calc.finalPrice) 
     }
@@ -81,7 +81,7 @@ export default function App(){
       '📦 Расчёт стоимости кроссовок',
       `База: ${fmtCNY(Number(baseCny))} × курс ${rate}`,
       `Перевод в ₽: ${fmtRUB(calc.baseRub)}`,
-      `Комиссия (${commissionPct}% от базы): ${fmtCNY(calc.commissionYuan)} → ${fmtRUB(calc.commissionRub)}`,
+      `Комиссия: ${fmtRUB(Number(commissionRub))} → ${fmtCNY(calc.commissionYuan)}`,
       `Логистика: ${fmtRUB(Number(logistics))}`,
       `Себестоимость: ${fmtRUB(calc.cost)}`,
       `Наценка: ${Number(markupPct).toFixed(1)}% → ${fmtRUB(calc.markupRub)}`,
@@ -126,7 +126,7 @@ export default function App(){
               <InputNumber label="Курс юаня к рублю (₽)" value={rate} onChange={setRate} step="0.01" />
               <InputNumber label="Логистика (₽)" value={logistics} onChange={setLogistics} />
               <div className="grid grid-cols-2 gap-3">
-                <InputNumber label="Комиссия посредника (%)" value={commissionPct} onChange={setCommissionPct} step="0.1" />
+                <InputNumber label="Комиссия посредника (₽)" value={commissionRub} onChange={setCommissionRub} />
                 <InputNumber label="Наценка (%)" value={markupPct} onChange={setMarkupPct} step="0.1" />
               </div>
               
@@ -160,7 +160,7 @@ export default function App(){
             <div className="grid gap-3">
               <Row label="Стоимость в юанях" value={fmtCNY(Number(baseCny))} />
               <Row label="Перевод в рубли" value={fmtRUB(calc.baseRub)} />
-              <Row label={`Комиссия (${commissionPct}% от базы)`} value={`${fmtCNY(calc.commissionYuan)} → ${fmtRUB(calc.commissionRub)}`} />
+              <Row label="Комиссия посредника" value={`${fmtRUB(Number(commissionRub))} → ${fmtCNY(calc.commissionYuan)}`} />
               <Row label="Логистика" value={fmtRUB(Number(logistics))} />
               <Row label="Себестоимость" value={fmtRUB(calc.cost)} />
               <Row label="Прибыль" value={fmtRUB(calc.profit)} />
